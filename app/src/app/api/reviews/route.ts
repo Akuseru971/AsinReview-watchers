@@ -1,22 +1,11 @@
-// src/app/api/reviews/route.ts
-// Global reviews endpoint – all reviews for the authenticated user
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { reviewFiltersSchema } from "@/lib/validation";
 import type { ReviewRow } from "@/types";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
   const { searchParams } = req.nextUrl;
-  const parsed = reviewFiltersSchema.safeParse(
-    Object.fromEntries(searchParams)
-  );
+  const parsed = reviewFiltersSchema.safeParse(Object.fromEntries(searchParams));
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -35,7 +24,6 @@ export async function GET(req: NextRequest) {
   } = parsed.data;
 
   const where = {
-    product: { userId },
     ...(dateFrom || dateTo
       ? {
           reviewDate: {

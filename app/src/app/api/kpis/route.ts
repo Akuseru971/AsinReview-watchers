@@ -1,22 +1,13 @@
-// src/app/api/kpis/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { KpiStats } from "@/types";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
   const { searchParams } = req.nextUrl;
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
 
   const products = await prisma.product.findMany({
-    where: { userId },
     select: { id: true, amazonRating: true },
   });
 

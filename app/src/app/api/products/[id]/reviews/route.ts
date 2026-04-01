@@ -1,6 +1,4 @@
-// src/app/api/products/[id]/reviews/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { reviewFiltersSchema } from "@/lib/validation";
 import type { ReviewRow } from "@/types";
@@ -9,16 +7,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
 
-  // Verify product belongs to user
   const product = await prisma.product.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id },
   });
 
   if (!product) {
@@ -26,9 +18,7 @@ export async function GET(
   }
 
   const { searchParams } = req.nextUrl;
-  const parsed = reviewFiltersSchema.safeParse(
-    Object.fromEntries(searchParams)
-  );
+  const parsed = reviewFiltersSchema.safeParse(Object.fromEntries(searchParams));
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

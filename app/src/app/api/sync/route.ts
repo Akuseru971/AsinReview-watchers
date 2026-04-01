@@ -1,41 +1,58 @@
-// src/app/api/sync/route.ts
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { activeConnector } from "@/lib/connectors";
+import {
+  parseAsinInput,
+  syncMultipleAsins,
+  syncTrackedAsinsLatest,
+} from "@/lib/ingestion/review-ingestion-service";
 
-export async function POST() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+type SyncPayload = {
+  input?: string;
+  marketplace?: string;
+  latestOnly?: boolean;
+};
 
-  const userId = session.user.id;
+export async function POST(req: Request) {
+  const payload = (await req.json().catch(() => ({}))) as SyncPayload;
+  const latestOnly = Boolean(payload.latestOnly);
+  const marketplace = (payload.marketplace ?? "BR").toUpperCase();
 
-  // Create sync log entry
   const log = await prisma.syncLog.create({
-    data: { userId, status: "running" },
+    data: { status: "running" },
   });
 
   try {
-    const result = await activeConnector.syncReviews(userId);
+    const hasManualInput = typeof payload.input === "string" && payload.input.trim().length > 0;
+    const parsedManualInput = hasManualInput
+      ? parseAsinInput(payload.input as string)
+      : { valid: [], invalid: [] };
+
+    const result = hasManualInput
+      ? await syncMultipleAsins({
+          asins: parsedManualInput.valid,
+          marketplace,
+          latestOnly,
+        })
+      : await syncTrackedAsinsLatest();
 
     await prisma.syncLog.update({
       where: { id: log.id },
       data: {
         status: result.errors.length > 0 ? "error" : "success",
-        message:
-          result.errors.length > 0 ? result.errors.join("\n") : null,
+        message: result.errors.length > 0 ? result.errors.join("\n") : null,
         reviewsAdded: result.reviewsAdded,
         productsAdded: result.productsAdded,
         finishedAt: new Date(),
       },
     });
 
+    const extraInvalidAsins = (result as { invalidAsins?: string[] }).invalidAsins ?? [];
+
     return NextResponse.json({
       success: true,
       reviewsAdded: result.reviewsAdded,
       productsAdded: result.productsAdded,
+      invalidAsins: [...parsedManualInput.invalid, ...extraInvalidAsins],
       errors: result.errors,
     });
   } catch (err) {

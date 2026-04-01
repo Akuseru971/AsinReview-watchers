@@ -1,54 +1,14 @@
 // src/app/api/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { importAsinsSchema, productFiltersSchema } from "@/lib/validation";
+import {
+  parseAsinInput,
+  syncMultipleAsins,
+} from "@/lib/ingestion/review-ingestion-service";
 import type { ProductRow } from "@/types";
 
-const MARKETPLACE_META: Record<string, { name: string; domain: string }> = {
-  BR: { name: "Brazil", domain: "amazon.com.br" },
-  US: { name: "United States", domain: "amazon.com" },
-  UK: { name: "United Kingdom", domain: "amazon.co.uk" },
-  DE: { name: "Germany", domain: "amazon.de" },
-  FR: { name: "France", domain: "amazon.fr" },
-  IT: { name: "Italy", domain: "amazon.it" },
-  ES: { name: "Spain", domain: "amazon.es" },
-  CA: { name: "Canada", domain: "amazon.ca" },
-  JP: { name: "Japan", domain: "amazon.co.jp" },
-  IN: { name: "India", domain: "amazon.in" },
-  AU: { name: "Australia", domain: "amazon.com.au" },
-};
-
-function extractAsins(input: string) {
-  const tokens = input
-    .toUpperCase()
-    .split(/[\s,;|\n\r\t]+/)
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  const valid = new Set<string>();
-  const invalid = new Set<string>();
-
-  for (const token of tokens) {
-    if (/^[A-Z0-9]{10}$/.test(token)) {
-      valid.add(token);
-    } else {
-      invalid.add(token);
-    }
-  }
-
-  return {
-    valid: Array.from(valid),
-    invalid: Array.from(invalid),
-  };
-}
-
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = req.nextUrl;
   const parsed = productFiltersSchema.safeParse(
     Object.fromEntries(searchParams)
@@ -75,7 +35,6 @@ export async function GET(req: NextRequest) {
 
   const products = await prisma.product.findMany({
     where: {
-      userId: session.user.id,
       ...(marketplace && { marketplace: { code: marketplace } }),
       ...(search && {
         OR: [
@@ -124,38 +83,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const json = await req.json().catch(() => null);
   const parsed = importAsinsSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const marketplaceCode = parsed.data.marketplace.toUpperCase();
-  const marketplaceMeta =
-    MARKETPLACE_META[marketplaceCode] ?? {
-      name: marketplaceCode,
-      domain: `amazon.${marketplaceCode.toLowerCase()}`,
-    };
-
-  const marketplace = await prisma.marketplace.upsert({
-    where: { code: marketplaceCode },
-    update: {
-      name: marketplaceMeta.name,
-      domain: marketplaceMeta.domain,
-    },
-    create: {
-      code: marketplaceCode,
-      name: marketplaceMeta.name,
-      domain: marketplaceMeta.domain,
-    },
-  });
-
-  const { valid, invalid } = extractAsins(parsed.data.input);
+  const { valid, invalid } = parseAsinInput(parsed.data.input);
   if (valid.length === 0) {
     return NextResponse.json(
       {
@@ -168,36 +102,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existing = await prisma.product.findMany({
-    where: {
-      userId: session.user.id,
-      marketplaceId: marketplace.id,
-      asin: { in: valid },
-    },
-    select: { asin: true },
+  const result = await syncMultipleAsins({
+    asins: valid,
+    marketplace: parsed.data.marketplace,
+    latestOnly: false,
   });
 
-  const existingSet = new Set(existing.map((p) => p.asin));
-  const toCreate = valid.filter((asin) => !existingSet.has(asin));
-
-  if (toCreate.length > 0) {
-    await prisma.product.createMany({
-      data: toCreate.map((asin) => ({
-        userId: session.user.id,
-        marketplaceId: marketplace.id,
-        asin,
-        title: `ASIN ${asin}`,
-        amazonRating: 0,
-        totalReviewCount: 0,
-      })),
-      skipDuplicates: true,
-    });
-  }
-
   return NextResponse.json({
-    created: toCreate.length,
-    skipped: valid.length - toCreate.length,
+    created: result.productsAdded,
+    skipped: valid.length - result.productsAdded,
     invalid,
-    marketplace: marketplace.code,
+    errors: result.errors,
+    reviewsAdded: result.reviewsAdded,
+    marketplace: parsed.data.marketplace,
   });
 }

@@ -1,6 +1,4 @@
-// src/app/api/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { exportParamsSchema } from "@/lib/validation";
 import {
@@ -12,18 +10,10 @@ import {
 import type { ProductRow, ReviewRow } from "@/types";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = session.user.id;
   const { searchParams } = req.nextUrl;
   const format = searchParams.get("format") ?? "xlsx";
 
-  const parsed = exportParamsSchema.safeParse(
-    Object.fromEntries(searchParams)
-  );
+  const parsed = exportParamsSchema.safeParse(Object.fromEntries(searchParams));
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -41,7 +31,6 @@ export async function GET(req: NextRequest) {
   } = parsed.data;
 
   const reviewWhere = {
-    product: { userId },
     ...(productId && { productId }),
     ...(dateFrom || dateTo
       ? {
@@ -71,7 +60,7 @@ export async function GET(req: NextRequest) {
 
   const [products, reviews] = await Promise.all([
     prisma.product.findMany({
-      where: { userId, ...(productId && { id: productId }) },
+      where: { ...(productId && { id: productId }) },
       include: { marketplace: true },
     }),
     prisma.review.findMany({

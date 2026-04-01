@@ -1,4 +1,3 @@
-// src/components/dashboard/sync-button.tsx
 "use client";
 
 import { useSync } from "@/hooks/use-sync";
@@ -15,21 +14,16 @@ export function SyncButton() {
 
   const handleSync = () => {
     setResult(null);
-    mutate(undefined, {
+    mutate({ latestOnly: true }, {
       onSuccess: (data) => setResult(data),
     });
   };
 
   return (
     <div className="flex items-center gap-3">
-      <Button
-        variant="secondary"
-        onClick={handleSync}
-        loading={isPending}
-        disabled={isPending}
-      >
+      <Button variant="secondary" onClick={handleSync} loading={isPending} disabled={isPending}>
         <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
-        {isPending ? "Syncing…" : "Sync Reviews"}
+        {isPending ? "Syncing…" : "Sync latest reviews"}
       </Button>
 
       {isSuccess && result && (

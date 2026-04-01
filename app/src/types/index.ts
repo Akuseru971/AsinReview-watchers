@@ -72,21 +72,27 @@ export interface SyncLogRow {
   finishedAt: string | null;
 }
 
-// ─── Data-source connector interface ───
+// ─── ASIN-centric ingestion interfaces ───
+
+export interface SyncAsinsInput {
+  asins: string[];
+  marketplace: string;
+  latestOnly?: boolean;
+}
 
 export interface ReviewConnector {
-  /** Fetch all products for a user from the external source */
-  fetchProducts(userId: string): Promise<ExternalProduct[]>;
+  /** Discover if a product exists for a given ASIN */
+  discoverProductByAsin(asin: string, marketplace: string): Promise<boolean>;
 
-  /** Fetch reviews for a specific ASIN */
+  /** Retrieve product metadata from ASIN */
+  fetchProductMetadata(asin: string, marketplace: string): Promise<ExternalProduct | null>;
+
+  /** Fetch reviews for a specific ASIN and marketplace */
   fetchReviewsByAsin(
     asin: string,
     marketplace: string,
     options?: { since?: Date }
   ): Promise<ExternalReview[]>;
-
-  /** Run full sync: upsert products & reviews, return summary */
-  syncReviews(userId: string): Promise<SyncResult>;
 }
 
 export interface ExternalProduct {

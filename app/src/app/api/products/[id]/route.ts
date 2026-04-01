@@ -1,21 +1,14 @@
-// src/app/api/products/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
 
   const product = await prisma.product.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id },
     include: { marketplace: true },
   });
 
@@ -23,7 +16,6 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Rating distribution
   const distribution = await prisma.review.groupBy({
     by: ["rating"],
     where: { productId: product.id },

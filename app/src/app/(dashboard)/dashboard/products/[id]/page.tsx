@@ -1,9 +1,7 @@
-// src/app/(dashboard)/dashboard/products/[id]/page.tsx
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Topbar } from "@/components/layout/topbar";
 import { ReviewList } from "@/components/dashboard/review-list";
@@ -22,20 +20,16 @@ interface PageProps {
 }
 
 export default async function ProductDetailPage({ params, searchParams }: PageProps) {
-  const session = await auth();
-  if (!session?.user?.id) notFound();
-
   const { id } = await params;
   const sp = await searchParams;
 
   const product = await prisma.product.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id },
     include: { marketplace: true },
   });
 
   if (!product) notFound();
 
-  // Rating distribution
   const distribution = await prisma.review.groupBy({
     by: ["rating"],
     where: { productId: id },
@@ -50,14 +44,9 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Topbar
-        title={product.asin}
-        subtitle={product.title}
-        showSync
-      />
+      <Topbar title={product.asin} subtitle={product.title} showSync />
 
       <div className="flex-1 px-6 py-6 space-y-6">
-        {/* Back link */}
         <Link
           href="/dashboard/products"
           className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
@@ -66,7 +55,6 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
           Back to ASINs
         </Link>
 
-        {/* Product header card */}
         <Card className="p-5">
           <div className="flex items-start gap-5">
             {product.imageUrl ? (
@@ -97,18 +85,13 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
                 {product.title}
               </h2>
               <div className="mt-2 flex items-center gap-4 flex-wrap">
-                <StarRating
-                  rating={product.amazonRating}
-                  showValue
-                  size="md"
-                />
+                <StarRating rating={product.amazonRating} showValue size="md" />
                 <span className="text-sm text-slate-400">
                   {product.totalReviewCount.toLocaleString()} reviews
                 </span>
                 {product.latestReviewDate && (
                   <span className="text-xs text-slate-500">
-                    Latest:{" "}
-                    {new Date(product.latestReviewDate).toLocaleDateString()}
+                    Latest: {new Date(product.latestReviewDate).toLocaleDateString()}
                   </span>
                 )}
               </div>
@@ -118,26 +101,19 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
           </div>
         </Card>
 
-        {/* Stats row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Rating distribution */}
           <Card>
             <CardHeader>
-              <span className="text-sm font-medium text-slate-300">
-                Rating Distribution
-              </span>
+              <span className="text-sm font-medium text-slate-300">Rating Distribution</span>
             </CardHeader>
             <CardContent>
               <RatingDistribution distribution={distMap} total={totalDist} />
             </CardContent>
           </Card>
 
-          {/* Trend */}
           <Card>
             <CardHeader>
-              <span className="text-sm font-medium text-slate-300">
-                Review Trend (weekly)
-              </span>
+              <span className="text-sm font-medium text-slate-300">Review Trend (weekly)</span>
             </CardHeader>
             <CardContent className="p-0 pb-2">
               <Suspense fallback={<Skeleton className="h-56" />}>
@@ -147,7 +123,6 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
           </Card>
         </div>
 
-        {/* Reviews */}
         <Card>
           <CardHeader>
             <span className="text-sm font-medium text-slate-300">Reviews</span>
@@ -162,11 +137,7 @@ export default async function ProductDetailPage({ params, searchParams }: PagePr
                 </div>
               }
             >
-              <ReviewList
-                productId={id}
-                initialDateFrom={sp.dateFrom}
-                initialDateTo={sp.dateTo}
-              />
+              <ReviewList productId={id} initialDateFrom={sp.dateFrom} initialDateTo={sp.dateTo} />
             </Suspense>
           </CardContent>
         </Card>
