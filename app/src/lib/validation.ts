@@ -32,7 +32,7 @@ export const exportParamsSchema = reviewFiltersSchema.extend({
 
 export const importAsinsSchema = z.object({
   input: z.string().min(1).max(10000),
-  marketplace: z.string().trim().toUpperCase().max(10).default("US"),
+  marketplace: z.string().trim().toUpperCase().max(10).default("BR"),
 });
 
 export type ReviewFiltersInput = z.infer<typeof reviewFiltersSchema>;

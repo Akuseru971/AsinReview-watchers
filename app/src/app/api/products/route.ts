@@ -6,6 +6,7 @@ import { importAsinsSchema, productFiltersSchema } from "@/lib/validation";
 import type { ProductRow } from "@/types";
 
 const MARKETPLACE_META: Record<string, { name: string; domain: string }> = {
+  BR: { name: "Brazil", domain: "amazon.com.br" },
   US: { name: "United States", domain: "amazon.com" },
   UK: { name: "United Kingdom", domain: "amazon.co.uk" },
   DE: { name: "Germany", domain: "amazon.de" },

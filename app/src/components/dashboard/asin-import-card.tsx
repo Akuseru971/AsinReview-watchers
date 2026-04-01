@@ -15,12 +15,12 @@ type ImportResult = {
   message?: string;
 };
 
-const MARKET_OPTIONS = ["US", "UK", "DE", "FR", "IT", "ES", "CA", "JP", "IN", "AU"];
+const MARKET_OPTIONS = ["BR", "US", "UK", "DE", "FR", "IT", "ES", "CA", "JP", "IN", "AU"];
 
 export function AsinImportCard() {
   const queryClient = useQueryClient();
   const [input, setInput] = useState("");
-  const [marketplace, setMarketplace] = useState("US");
+  const [marketplace, setMarketplace] = useState("BR");
   const [lastResult, setLastResult] = useState<ImportResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

@@ -91,6 +91,7 @@ export function ReviewFilterBar({ filters, onChange }: ReviewFilterBarProps) {
           onChange={(e) => update("marketplace", e.target.value)}
         >
           <option value="">All</option>
+          <option value="BR">🇧🇷 BR</option>
           <option value="US">🇺🇸 US</option>
           <option value="FR">🇫🇷 FR</option>
           <option value="DE">🇩🇪 DE</option>

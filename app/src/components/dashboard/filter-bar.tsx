@@ -103,6 +103,7 @@ export function FilterBar() {
           onChange={(e) => update("marketplace", e.target.value || undefined)}
         >
           <option value="">All</option>
+          <option value="BR">🇧🇷 BR</option>
           <option value="US">🇺🇸 US</option>
           <option value="FR">🇫🇷 FR</option>
           <option value="DE">🇩🇪 DE</option>
