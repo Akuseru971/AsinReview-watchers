@@ -10,7 +10,6 @@ import {
   MessageSquare,
   Settings,
   BarChart2,
-  LogOut,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -64,17 +63,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Bottom */}
-      <div className="px-3 py-3 border-t border-slate-700/50">
-        <Link
-          href="/api/auth/signout"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-all"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </Link>
-      </div>
     </aside>
   );
 }

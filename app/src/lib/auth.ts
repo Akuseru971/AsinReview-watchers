@@ -12,7 +12,7 @@ const credentialsSchema = z.object({
   password: z.string().min(6),
 });
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const nextAuth = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   pages: {
@@ -51,3 +51,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 });
+
+export const { handlers, signIn, signOut } = nextAuth;
+
+const DEMO_EMAIL = process.env.DEMO_USER_EMAIL ?? "demo@example.com";
+
+export const auth = async (...args: unknown[]) => {
+  const session = await (nextAuth.auth as (...input: unknown[]) => Promise<any>)(
+    ...args,
+  );
+  if (session?.user?.id) return session;
+
+  const demoUser = await prisma.user.upsert({
+    where: { email: DEMO_EMAIL },
+    update: {},
+    create: {
+      email: DEMO_EMAIL,
+      name: "Demo User",
+    },
+  });
+
+  return {
+    user: {
+      id: demoUser.id,
+      email: demoUser.email,
+      name: demoUser.name,
+    },
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  };
+};
