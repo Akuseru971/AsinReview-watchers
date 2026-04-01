@@ -6,6 +6,7 @@ import { ProductTable } from "@/components/dashboard/product-table";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExportButton } from "@/components/dashboard/export-button";
+import { AsinImportCard } from "@/components/dashboard/asin-import-card";
 
 export default async function ProductsPage({
   searchParams,
@@ -26,6 +27,8 @@ export default async function ProductsPage({
         <Suspense fallback={<Skeleton className="h-12 w-full" />}>
           <FilterBar />
         </Suspense>
+
+        <AsinImportCard />
 
         <Card>
           <CardHeader>
